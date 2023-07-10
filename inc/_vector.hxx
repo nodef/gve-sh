@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <vector>
 #include "_debug.hxx"
-
 #ifdef OPENMP
 #include <omp.h>
 #endif
