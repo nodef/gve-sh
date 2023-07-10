@@ -12,4 +12,3 @@
 #include "csr.hxx"
 #include "modularity.hxx"
 #include "random.hxx"
-#include "louvain.hxx"
