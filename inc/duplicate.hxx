@@ -4,6 +4,7 @@
 
 
 
+#pragma region METHODS
 // DUPLICATE IF
 // ------------
 // Duplicate vertices/edges of graph if test passes.
@@ -81,3 +82,4 @@ inline G duplicate(const G& x) {
   G a = x;  // Just use the copy constructor.
   return a;
 }
+#pragma endregion
