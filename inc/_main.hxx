@@ -11,6 +11,7 @@
 #include "_vector.hxx"
 #include "_queue.hxx"
 #include "_bitset.hxx"
+#include "_socket.hxx"
 #ifdef OPENMP
 #include "_openmp.hxx"
 #endif

@@ -1,10 +1,10 @@
 #pragma once
 #include <utility>
-#include <algorithm>
 #include <string>
 #include <istream>
 #include <sstream>
 #include <fstream>
+#include <algorithm>
 #include <cstdlib>
 #include "_main.hxx"
 #include "Graph.hxx"
