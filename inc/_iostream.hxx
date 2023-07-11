@@ -1,13 +1,13 @@
 #pragma once
-#include <ctime>
-#include <type_traits>
 #include <utility>
+#include <type_traits>
 #include <iterator>
 #include <array>
 #include <vector>
 #include <ostream>
 #include <iostream>
 #include <chrono>
+#include <ctime>
 
 using std::pair;
 using std::array;
