@@ -3,9 +3,8 @@
 
 
 
-// WEIGHT
-// ------
-
+#pragma region METHODS
+#pragma region EDGE WEIGHT
 /**
  * Find the total outgoing edge weight of a vertex.
  * @param x original graph
@@ -32,6 +31,11 @@ inline double edgeWeight(const G& x) {
   return a;
 }
 
+/**
+ * Find the total edge weight of a graph in parallel.
+ * @param x original graph
+ * @returns total edge weight (undirected graph => each edge considered twice)
+ */
 template <class G>
 inline double edgeWeightOmp(const G& x) {
   using K = typename G::key_type;
@@ -44,8 +48,12 @@ inline double edgeWeightOmp(const G& x) {
   }
   return a;
 }
+#pragma endregion
 
 
+
+
+#pragma region DEGREES
 /**
  * Find the outgoing degree of each vertex.
  * @param a degrees of each vertex (output)
@@ -56,3 +64,5 @@ template <class G, class K>
 inline void degreesW(vector<K>& a, const G& x) {
   x.forEachVertexKey([&](auto u) { a[u] = x.degree(u); });
 }
+#pragma endregion
+#pragma endregion
