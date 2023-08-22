@@ -1,12 +1,10 @@
 #pragma once
+// Avoid compiler error/bug "error: structured binding refers to incomplete type"
+#include <unordered_map>
 #include <algorithm>
 #include "_queue.hxx"
 
-using std::all_of;
-using std::count_if;
-using std::equal;
 using std::copy;
-using std::sort;
 
 
 

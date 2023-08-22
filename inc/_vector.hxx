@@ -701,6 +701,69 @@ inline TA sumValuesOmp(const vector<TX>& x, TA a=TA()) {
 
 
 
+#pragma region COUNT VALUE
+/**
+ * Count the number of times a value appears in an array.
+ * @param x an array
+ * @param N size of array
+ * @param v value to count
+ * @returns number of times value appears
+ */
+template <class TX>
+inline size_t countValue(const TX *x, size_t N, const TX& v) {
+  ASSERT(x);
+  size_t a = 0;
+  for (size_t i=0; i<N; ++i)
+    if (x[i]==v) ++a;
+  return a;
+}
+
+/**
+ * Count the number of times a value appears in an array.
+ * @param x a vector
+ * @param v value to count
+ * @returns number of times value appears
+ */
+template <class TX>
+inline size_t countValue(const vector<TX>& x, const TX& v) {
+  return countValue(x.data(), x.size(), v);
+}
+
+
+#ifdef OPENMP
+/**
+ * Count the number of times a value appears in an array.
+ * @param x an array
+ * @param N size of array
+ * @param v value to count
+ * @returns number of times value appears
+ */
+template <class TX>
+inline size_t countValueOmp(const TX *x, size_t N, const TX& v) {
+  ASSERT(x);
+  size_t a = 0;
+  #pragma omp parallel for schedule(auto) reduction(+:a)
+  for (size_t i=0; i<N; ++i)
+    if (x[i]==v) ++a;
+  return a;
+}
+
+/**
+ * Count the number of times a value appears in an array.
+ * @param x a vector
+ * @param v value to count
+ * @returns number of times value appears
+ */
+template <class TX>
+inline size_t countValueOmp(const vector<TX>& x, const TX& v) {
+  return countValueOmp(x.data(), x.size(), v);
+}
+#endif
+#pragma endregion
+
+
+
+
 #pragma region L1-NORM
 /**
  * Compute the L1-norm of an array.
@@ -1021,6 +1084,7 @@ inline TA l2NormDeltaOmp(const vector<TX>& x, const vector<TY>& y, TA a=TA()) {
   return l2NormDeltaOmp(x.data(), y.data(), x.size(), a);
 }
 #endif
+#pragma endregion
 
 
 
@@ -1350,7 +1414,7 @@ inline TA inclusiveScanOmpW(TA *a, TA *buf, const TX *x, size_t N, TA acc=TA()) 
     int T = omp_get_num_threads();
     int t = omp_get_thread_num();
     size_t chunkSize = (N + T - 1) / T;
-    size_t i = t * chunkSize;
+    size_t i = min(t * chunkSize, N);
     size_t I = min(i + chunkSize, N);
     buf[t]   = inclusiveScanW(a+i, x+i, I-i);
   }
@@ -1362,7 +1426,7 @@ inline TA inclusiveScanOmpW(TA *a, TA *buf, const TX *x, size_t N, TA acc=TA()) 
     int T = omp_get_num_threads();
     int t = omp_get_thread_num();
     size_t chunkSize = (N + T - 1) / T;
-    size_t i = t * chunkSize;
+    size_t i = min(t * chunkSize, N);
     size_t I = min(i + chunkSize, N);
     addValueU(a+i, I-i, t==0? acc : buf[t-1] + acc);
   }
