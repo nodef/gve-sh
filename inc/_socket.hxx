@@ -106,6 +106,17 @@ class UnixSocketServer {
 
 
   /**
+   * Send a string to a client.
+   * @param client_fd client socket file descriptor
+   * @param data string to send
+   * @throws char* if data could not be sent
+   */
+  inline void send(int client_fd, const char *data) {
+    send(client_fd, data, strlen(data));
+  }
+
+
+  /**
    * Bind the server to a socket file.
    * @param path path to the socket file
    * @throws char* if socket could not be bound

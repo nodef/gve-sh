@@ -114,7 +114,7 @@ inline const char* parseFileFormat(string_view x) {
  * $ measure <subcommand> -i <input-file>
  * Measure a property of a graph.
  */
-inline int readCommandU(Options& o, int argc, char **argv, int i) {
+inline int readCommandU(Options& o, int argc, const char **argv, int i) {
   string_view c = o["command"];
   if (c=="unload" || c=="save") {
     if  (o["input-graph"]=="") o["input-graph"] = argv[i];
@@ -154,7 +154,7 @@ inline string verifyOptions(Options& o) {
  * @param argv array of arguments
  * @returns parsed Options
  */
-inline Options readOptions(int argc, char **argv) {
+inline Options readOptions(int argc, const char **argv) {
   Options o;
   // Read each option one by one.
   for (int i=1; i<argc; ++i) {
@@ -192,7 +192,7 @@ inline Options readOptions(int argc, char **argv) {
  * Generate a help message for the program.
  * @returns help message
  */
-const char* helpMessage() {
+inline const char* helpMessage() {
   return "For usage details, please try the following URL:\n"
   "https://github.com/ionicf/gve.sh";
 }
