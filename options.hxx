@@ -1,85 +1,64 @@
 #pragma once
 #include <string>
+#include <string_view>
+#include <unordered_map>
+#include <cstdint>
 
 using std::string;
+using std::string_view;
+using std::unordered_map;
 using std::stoi;
-
-
-
-
-#pragma region FILE FORMAT
-/** File format for the input or output graph. */
-enum class FileFormat {
-  UNKNOWN,
-  FIXED_MTX,
-  TEMPORAL_TXT
-};
-
-
-/**
- * Parse a string into a FileFormat.
- * @param x string to parse
- * @returns parsed FileFormat
- */
-auto parseFileFormat(const string& x) {
-  typedef FileFormat F;
-  if (x=="mtx" || x==".mtx") return F::FIXED_MTX;
-  if (x=="txt" || x==".txt") return F::TEMPORAL_TXT;
-  return F::UNKNOWN;
-}
-#pragma endregion
-
-
-
-
-#pragma region GRAPH TRANSFORM
-/** Graph transformation to apply. */
-enum class GraphTransform {
-  UNKNOWN,
-  IDENTITY,
-  LOOP_DEADENDS,
-  LOOP_VERTICES
-};
-
-
-/**
- * Parse a string into a GraphTransform.
- * @param x string to parse
- * @returns parsed GraphTransform
- */
-auto parseGraphTransform(const string& x) {
-  typedef GraphTransform T;
-  if (x=="identity" || x=="default" || x=="none" || x=="") return T::IDENTITY;
-  if (x=="loop-deadends" || x=="loop")     return T::LOOP_DEADENDS;
-  if (x=="loop-vertices" || x=="loop-all") return T::LOOP_VERTICES;
-  return T::UNKNOWN;
-}
-#pragma endregion
 
 
 
 
 #pragma region OPTIONS
 /** Command-line options for the program. */
-struct Options {
-  private:
-  typedef FileFormat     F;
-  typedef GraphTransform T;
-  public:
-  bool   help  = false;
-  string error = "";
-  string file  = "";
-  string formatStr    = "";
-  string transformStr = "";
-  string samplesStr   = "";
-  F format    = F::UNKNOWN;
-  T transform = T::IDENTITY;
-  int  samples    = 10;
-  bool components = true;
-  bool blockgraph = true;
-  bool chains     = true;
-  bool identicals = true;
-};
+typedef unordered_map<string, string> Options;
+
+
+/**
+ * Check if a string is a boolean.
+ * @param x string to check
+ * @returns true if the string is a boolean, false otherwise
+ */
+inline bool isBool(string_view x) {
+  return x=="0" || x=="1" || x=="true" || x=="false";
+}
+
+
+/**
+ * Check if a string is an integer.
+ * @param x string to check
+ * @returns true if the string is an integer, false otherwise
+ */
+inline bool isInt(string_view x) {
+  char *end;
+  strtol(x.data(), &end, 10);
+  return end == x.data() + x.size();
+}
+
+
+/**
+ * Check if a string is a graph id.
+ * @param x string to check
+ * @returns true if the string is a graph id, false otherwise
+ */
+inline bool isGraphId(string_view x) {
+  return x.size()>=2 && (x[0]=='G' || x[0]=='g') && isInt(x.substr(1));
+}
+
+
+/**
+ * Check if a string is a double.
+ * @param x string to check
+ * @returns true if the string is a double, false otherwise
+ */
+inline bool isDouble(string_view x) {
+  char *end;
+  strtod(x.data(), &end);
+  return end == x.data() + x.size();
+}
 
 
 /**
@@ -87,9 +66,85 @@ struct Options {
  * @param path path to extract extension from
  * @returns extension of the path
  */
-string pathExtname(const string& path) {
-  auto idx = path.rfind('.');
+inline string_view pathExtname(string_view path) {
+  auto   idx = path.rfind('.');
   return idx==string::npos? "" : path.substr(idx);
+}
+
+
+/**
+ * Parse file format from a string.
+ * @param x string to parse
+ * @returns parsed file format
+ */
+inline const char* parseFileFormat(string_view x) {
+  if (!x.empty() && x[0]=='.') x = x.substr(1);
+  if (x=="") return "";
+  if (x=="edgelist"      || x=="edges") return "edgelist";
+  if (x=="matrix-market" || x=="mtx")   return "matrix-market";
+  if (x=="snap-temporal" || x=="temporal" || x=="txt") return "temporal";
+}
+
+
+/**
+ * Read a command from the command-line arguments.
+ * @param o options to read into (updated)
+ * @param argc number of arguments
+ * @param argv array of arguments
+ * @param i index of the current argument
+ * @returns index of the next argument to read
+ * @details
+ * Available commands:
+ * $ serve
+ * Start a server to listen for commands.
+ *
+ * $ load -i <input-file>
+ * Load a graph from a file into memory.
+ *
+ * $ unload <input-graph>
+ * Unload a graph from memory.
+ *
+ * $ save <input-graph> -o <output-file>
+ * Save a graph from memory to a file.
+ *
+ * $ convert -i <input-file> -o <output-file>
+ * Convert a graph from one format to another.
+ *
+ * $ measure <subcommand> <input-graph>
+ * $ measure <subcommand> -i <input-file>
+ * Measure a property of a graph.
+ */
+inline int readCommandU(Options& o, int argc, char **argv, int i) {
+  string_view c = o["command"];
+  if (c=="unload" || c=="save") {
+    if  (o["input-graph"]=="") o["input-graph"] = argv[i];
+    else o["error"] = "Input graph `" + o["input-graph"] + "` already specified";
+  }
+  return i;
+}
+
+
+/**
+ * Verify the options for a command.
+ * @param o options to verify
+ * @returns error message if any
+ */
+inline string verifyOptions(Options& o) {
+  string_view c = o["command"];
+  if (c=="unload" || c=="save") {
+    string_view g = o["input-graph"];
+    if (g=="")         return "No input graph specified";
+    if (!isGraphId(g)) return "Invalid input graph `" + string(g) + "` (must be G<int>)";
+  }
+  if (c=="load" || c=="convert") {
+    if (o["input-file"]=="")    return "No input file specified";
+    if (o["input-format"]=="")  return "No input format specified";
+  }
+  if (c=="save" || c=="convert") {
+    if (o["output-file"]=="")   return "No output file specified";
+    if (o["output-format"]=="") return "No output format specified";
+  }
+  return "";
 }
 
 
@@ -99,34 +154,33 @@ string pathExtname(const string& path) {
  * @param argv array of arguments
  * @returns parsed Options
  */
-Options readOptions(int argc, char **argv) {
-  typedef FileFormat     F;
-  typedef GraphTransform T;
-  Options a;
+inline Options readOptions(int argc, char **argv) {
+  Options o;
+  // Read each option one by one.
   for (int i=1; i<argc; ++i) {
-    string k = argv[i];
-    if (k=="--help") a.help = true;
-    else if (k=="-f" || k=="--format")    a.formatStr    = argv[++i];
-    else if (k=="-t" || k=="--transform") a.transformStr = argv[++i];
-    else if (k=="-s" || k=="--samples")   a.samplesStr   = argv[++i];
-    else if (k=="--components") a.components = true;
-    else if (k=="--blockgraph") a.blockgraph = true;
-    else if (k=="--chains")     a.chains     = true;
-    else if (k=="--identicals") a.identicals = true;
-    else if (k[0]=='-')       { a.error = "\'"+k+"\' is not an option";            break; }
-    else if (!a.file.empty()) { a.error = "\'"+k+"\' file cannot be read as well"; break; }
-    else a.file = k;
+    string_view k = argv[i];
+    if (k=="--help") o["help"] = "1";
+    else if (k=="-i" || k=="--input")  o["input-file"]    = argv[++i];
+    else if (k=="-o" || k=="--output") o["output-file"]   = argv[++i];
+    else if (k=="-f" || k=="--format") o["input-format"]  = argv[++i];
+    else if (k=="--input-file")        o["input-file"]    = argv[++i];
+    else if (k=="--output-file")       o["output-file"]   = argv[++i];
+    else if (k=="--input-format")      o["input-format"]  = argv[++i];
+    else if (k=="--output-format")     o["output-format"] = argv[++i];
+    else if (k[0]=='-')        o["error"]   = "Unknown option: " + string(k);
+    else if (o["command"]=="") o["command"] = k;
+    else i = readCommandU(o, argc, argv, i);
   }
-  if (a.file.empty())    { a.error  = "no input file specified"; return a; }
-  if (a.formatStr.empty()) a.formatStr = pathExtname(a.file);
-  try { if (!a.samplesStr.empty()) a.samples = stoi(a.samplesStr); }
-  catch (...) { a.error = "\'"+a.samplesStr+"\' samples is not an integer"; return a; }
-  a.format    = parseFileFormat(a.formatStr);
-  a.transform = parseGraphTransform(a.transformStr);
-  if (a.format   ==F::UNKNOWN) { a.error = "\'"+a.formatStr   +"\' format is not recognized";    return a; }
-  if (a.transform==T::UNKNOWN) { a.error = "\'"+a.transformStr+"\' transform is not recognized"; return a; }
-  if (a.samples<=0)            { a.error = "\'"+a.samplesStr+  "\' samples must be positive";    return a; }
-  return a;
+  // Preliminary checks.
+  if (o["command"]=="") o["error"] = "No command specified";
+  if (o["error"]!="")   return o;
+  // Obtain default input/output formats.
+  if (o["input-format"]=="")  o["input-format"]  = parseFileFormat(pathExtname(o["input-file"]));
+  if (o["output-format"]=="") o["output-format"] = parseFileFormat(pathExtname(o["output-file"]));
+  if (o["output-format"]=="") o["output-format"] = o["input-format"];
+  // Verify options.
+  o["error"] = verifyOptions(o);
+  return o;
 }
 #pragma endregion
 
@@ -140,6 +194,6 @@ Options readOptions(int argc, char **argv) {
  */
 const char* helpMessage() {
   return "For usage details, please try the following URL:\n"
-  "https://github.com/puzzlef/graph-properties";
+  "https://github.com/ionicf/gve.sh";
 }
 #pragma endregion
