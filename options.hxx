@@ -7,28 +7,33 @@ using std::stoi;
 
 
 
-// FILE FORMAT
-// -----------
-
+#pragma region FILE FORMAT
+/** File format for the input or output graph. */
 enum class FileFormat {
   UNKNOWN,
   FIXED_MTX,
   TEMPORAL_TXT
 };
 
+
+/**
+ * Parse a string into a FileFormat.
+ * @param x string to parse
+ * @returns parsed FileFormat
+ */
 auto parseFileFormat(const string& x) {
   typedef FileFormat F;
   if (x=="mtx" || x==".mtx") return F::FIXED_MTX;
   if (x=="txt" || x==".txt") return F::TEMPORAL_TXT;
   return F::UNKNOWN;
 }
+#pragma endregion
 
 
 
 
-// GRAPH TRANSFORM
-// ---------------
-
+#pragma region GRAPH TRANSFORM
+/** Graph transformation to apply. */
 enum class GraphTransform {
   UNKNOWN,
   IDENTITY,
@@ -36,6 +41,12 @@ enum class GraphTransform {
   LOOP_VERTICES
 };
 
+
+/**
+ * Parse a string into a GraphTransform.
+ * @param x string to parse
+ * @returns parsed GraphTransform
+ */
 auto parseGraphTransform(const string& x) {
   typedef GraphTransform T;
   if (x=="identity" || x=="default" || x=="none" || x=="") return T::IDENTITY;
@@ -43,13 +54,13 @@ auto parseGraphTransform(const string& x) {
   if (x=="loop-vertices" || x=="loop-all") return T::LOOP_VERTICES;
   return T::UNKNOWN;
 }
+#pragma endregion
 
 
 
 
-// OPTIONS
-// -------
-
+#pragma region OPTIONS
+/** Command-line options for the program. */
 struct Options {
   private:
   typedef FileFormat     F;
@@ -71,14 +82,23 @@ struct Options {
 };
 
 
-
-
+/**
+ * Extract the extension from a path.
+ * @param path path to extract extension from
+ * @returns extension of the path
+ */
 string pathExtname(const string& path) {
   auto idx = path.rfind('.');
   return idx==string::npos? "" : path.substr(idx);
 }
 
 
+/**
+ * Read command-line options into an Options struct.
+ * @param argc number of arguments
+ * @param argv array of arguments
+ * @returns parsed Options
+ */
 Options readOptions(int argc, char **argv) {
   typedef FileFormat     F;
   typedef GraphTransform T;
@@ -108,14 +128,18 @@ Options readOptions(int argc, char **argv) {
   if (a.samples<=0)            { a.error = "\'"+a.samplesStr+  "\' samples must be positive";    return a; }
   return a;
 }
+#pragma endregion
 
 
 
 
-// HELP
-// ----
-
+#pragma region HELP
+/**
+ * Generate a help message for the program.
+ * @returns help message
+ */
 const char* helpMessage() {
   return "For usage details, please try the following URL:\n"
   "https://github.com/puzzlef/graph-properties";
 }
+#pragma endregion
