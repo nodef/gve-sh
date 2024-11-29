@@ -77,7 +77,7 @@ inline void writeGraph(const G& x, const string& file, const string& format, boo
 
 
 
-#pragma region MAKE UNDIRECTED
+#pragma region RUN COMMANDS
 /**
  * Run the count-disconnected-communities command.
  * @param argc argument count
@@ -91,6 +91,7 @@ inline int runCountDisconnectedCommunities(int argc, char **argv, int i=1) {
   using Options = OptionsCountDisconnectedCommunities;
   // Parse command-line arguments.
   Options o = parseCountDisconnectedCommunities(argc, argv, i);
+  if (o.help) { helpCountDisconnectedCommunities(argv[0]); return 1; }
   if (!o.valid) return 1;
   // Read input graph.
   DiGraph<K, None, E> x;
@@ -127,17 +128,51 @@ inline int runMakeUndirected(int argc, char **argv, int i=1) {
   using Options = OptionsMakeUndirected;
   // Parse command-line arguments.
   Options o = parseOptionsMakeUndirected(argc, argv, i);
+  if (o.help) { helpMakeUndirected(argv[0]); return 1; }
   if (!o.valid) return 1;
   // Read input graph.
   DiGraph<K, None, E> x;
   printf("Reading graph %s ...\n", o.inputFile.c_str());
   readGraphW(x, o.inputFile, o.inputFormat, o.inputWeighted, o.inputSymmetric); println(x);
   // Symmetrize graph.
+  printf("Symmetrizing graph ...\n");
   if (!o.inputSymmetric) { symmetrizeOmpU(x); print(x); printf(" (symmetrize)\n"); }
   // Write undirected graph.
   printf("Writing undirected graph %s ...\n", o.outputFile.c_str());
   writeGraph(x, o.outputFile, o.outputFormat, o.outputWeighted, o.outputSymmetric);
   printf("Undirected graph written to %s.\n", o.outputFile.c_str());
+  printf("\n");
+  return 0;
+}
+
+
+/**
+ * Run the add-self-loops command.
+ * @param argc argument count
+ * @param argv argument values
+ * @param i start index of arguments [1]
+ * @returns zero on success, non-zero on failure
+ */
+inline int runAddSelfLoops(int argc, char **argv, int i=1) {
+  using K = KEY_TYPE;
+  using E = EDGE_VALUE_TYPE;
+  using Options = OptionsAddSelfLoops;
+  // Parse command-line arguments.
+  Options o = parseOptionsAddSelfLoops(argc, argv, i);
+  if (o.help) { helpAddSelfLoops(argv[0]); return 1; }
+  if (!o.valid) return 1;
+  // Read input graph.
+  DiGraph<K, None, E> x;
+  printf("Reading graph %s ...\n", o.inputFile.c_str());
+  readGraphW(x, o.inputFile, o.inputFormat, o.inputWeighted, o.inputSymmetric); println(x);
+  // Add self-loops.
+  printf("Adding self-loops ...\n");
+  auto ft = [](auto u) { return true; };
+  addSelfLoopsOmpU(x, E(1), ft);
+  // Write graph with self-loops.
+  printf("Writing graph with self-loops %s ...\n", o.outputFile.c_str());
+  writeGraph(x, o.outputFile, o.outputFormat, o.outputWeighted, o.outputSymmetric);
+  printf("Graph with self-loops written to %s.\n", o.outputFile.c_str());
   printf("\n");
   return 0;
 }
@@ -147,6 +182,25 @@ inline int runMakeUndirected(int argc, char **argv, int i=1) {
 
 
 #pragma region MAIN
+/**
+ * Show help message for the main program.
+ * @param name program name
+ * @returns zero on success, non-zero on failure
+ */
+inline int helpMain(const char *name) {
+  fprintf(stderr, "%s: A utility for analyzing and modifying graphs.\n", name);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Commands:\n");
+  fprintf(stderr, "  count-disconnected-communities\n");
+  fprintf(stderr, "  make-undirected\n");
+  fprintf(stderr, "  add-self-loops\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "See `%s <command> --help` for more information on a specific command.\n", name);
+  fprintf(stderr, "\n");
+  return 0;
+}
+
+
 /**
  * Main function.
  * @param argc argument count
@@ -160,9 +214,10 @@ int main(int argc, char **argv) {
   if (MAX_THREADS) omp_set_num_threads(MAX_THREADS);
   // Run the appropriate command.
   string cmd = argc>1 ? argv[1] : "";
-  if (cmd=="--help") printf("Help message.\n");
+  if (cmd=="--help") return helpMain(argv[0]);
   else if (cmd=="count-disconnected-communities") return runCountDisconnectedCommunities(argc, argv, 2);
   else if (cmd=="make-undirected")                return runMakeUndirected(argc, argv, 2);
+  else if (cmd=="add-self-loops")                 return runAddSelfLoops(argc, argv, 2);
   fprintf(stderr, "Unknown command `%s`. See `%s --help` for a list of commands.\n\n", cmd.c_str(), argv[0]);
   return 1;
 }

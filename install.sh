@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Default option values.
-: "${PREFIX:=~/.local}"
+: "${PREFIX:=$HOME/.local}"
 HELP="0"
 
 
@@ -37,9 +37,6 @@ fi
 mkdir -p "$PREFIX/bin"
 echo "Compiling gve.sh ..."
 DOWNLOAD=0 RUN=0 ./main.sh
-echo "Done."
-printf "\n"
 echo "Installing gve.sh ..."
 mv a.out "$PREFIX/bin/gve"
-echo "Done."
-printf "\n"
+echo "Installed gve.sh to '$PREFIX/bin/gve'."

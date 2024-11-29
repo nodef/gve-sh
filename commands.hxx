@@ -70,7 +70,7 @@ inline bool isOutputFile(const string &x, const char *details="-o, --output <fil
  */
 inline bool isGraphFormat(const string &x, const char *details="-f, --format <format>") {
   if (x=="mtx" || x=="coo" || x=="csv" || x=="tsv") return true;
-  fprintf(stderr, "Unknown graph format `%s`\n\n", x.c_str());
+  fprintf(stderr, "Unknown graph format '%s'\n\n", x.c_str());
   showUsage(details);
   helpGraphFormats();
   return false;
@@ -129,10 +129,10 @@ inline void helpCountDisconnectedCommunities(const char *name) {
 
 
 /**
- * Parse command line arguments.
+ * Parse command line arguments for the count-disconnected-communities command.
  * @param argc argument count
  * @param argv argument values
- * @param i starting index
+ * @param i start index of arguments [1]
  * @returns options
  */
 inline OptionsCountDisconnectedCommunities parseCountDisconnectedCommunities(int argc, char **argv, int i=1) {
@@ -149,15 +149,12 @@ inline OptionsCountDisconnectedCommunities parseCountDisconnectedCommunities(int
     else if (k=="-r" || k=="--membership-start") o.membershipStart = atoi(argv[++i]);
     else if (k=="-w" || k=="--weighted")  o.weighted  = true;
     else if (k=="-s" || k=="--symmetric") o.symmetric = true;
-    else {
-      fprintf(stderr, "Unknown option `%s`\n\n", k.c_str());
-      o.help = true;
-    }
+    else { fprintf(stderr, "Unknown option '%s'\n\n", k.c_str()); return o; }
   }
   // Validate options.
+  if (o.help) return o;
   if (!isInputFile(o.inputFile)) return o;
   if (!isGraphFormat(o.inputFormat, "-f, --input-format <format>")) return o;
-  if (o.help) { helpCountDisconnectedCommunities(argv[0]); return o; }
   o.valid = true;
   return o;
 }
@@ -195,13 +192,9 @@ struct OptionsMakeUndirected {
 
 
 /**
- * Show help message for the make-undirected command.
- * @param name program name
+ * Show options for the make-undirected command.
  */
-inline void helpMakeUndirected(const char *name) {
-  fprintf(stderr, "%s make-undirected:\n", name);
-  fprintf(stderr, "Convert a directed graph to an undirected graph.\n");
-  fprintf(stderr, "\n");
+inline void helpMakeUndirectedOptions() {
   fprintf(stderr, "Options:\n");
   fprintf(stderr, "  -h, --help                    Show this help message.\n");
   fprintf(stderr, "  -i, --input <file>            Input file name.\n");
@@ -213,15 +206,27 @@ inline void helpMakeUndirected(const char *name) {
   fprintf(stderr, "  -s, --input-symmetric         Input graph is symmetric [false].\n");
   fprintf(stderr, "  -t, --output-symmetric        Output graph is symmetric [false].\n");
   fprintf(stderr, "\n");
+}
+
+
+/**
+ * Show help message for the make-undirected command.
+ * @param name program name
+ */
+inline void helpMakeUndirected(const char *name) {
+  fprintf(stderr, "%s make-undirected:\n", name);
+  fprintf(stderr, "Convert a directed graph to an undirected graph.\n");
+  fprintf(stderr, "\n");
+  helpMakeUndirectedOptions();
   helpGraphFormats();
 }
 
 
 /**
- * Parse command line arguments.
+ * Parse command line arguments for the make-undirected command.
  * @param argc argument count
  * @param argv argument values
- * @param i starting index
+ * @param i start index of arguments [1]
  * @returns options
  */
 inline OptionsMakeUndirected parseOptionsMakeUndirected(int argc, char **argv, int i=1) {
@@ -239,18 +244,50 @@ inline OptionsMakeUndirected parseOptionsMakeUndirected(int argc, char **argv, i
     else if (k=="-x" || k=="--output-weighted")  o.outputWeighted  = true;
     else if (k=="-s" || k=="--input-symmetric")  o.inputSymmetric  = true;
     else if (k=="-t" || k=="--output-symmetric") o.outputSymmetric = true;
-    else {
-      fprintf(stderr, "Unknown option `%s`\n\n", k.c_str());
-      o.help = true;
-    }
+    else { fprintf(stderr, "Unknown option '%s'\n\n", k.c_str()); return o; }
   }
   // Validate options.
+  if (o.help) return o;
   if (!isInputFile(o.inputFile)) return o;
   if (!isOutputFile(o.outputFile)) return o;
   if (!isGraphFormat(o.inputFormat, "-f, --input-format <format>")) return o;
   if (!isGraphFormat(o.outputFormat, "-g, --output-format <format>")) return o;
-  if (o.help) { helpMakeUndirected(argv[0]); return o; }
   o.valid = true;
   return o;
+}
+#pragma endregion
+
+
+
+
+#pragma region ADD SELF LOOPS
+/**
+ * Command-line options for the add-self-loops command.
+ */
+typedef OptionsMakeUndirected OptionsAddSelfLoops;
+
+
+/**
+ * Show help message for the add-self-loops command.
+ * @param name program name
+ */
+inline void helpAddSelfLoops(const char *name) {
+  fprintf(stderr, "%s add-self-loops:\n", name);
+  fprintf(stderr, "Add self-loops to a graph.\n");
+  fprintf(stderr, "\n");
+  helpMakeUndirectedOptions();
+  helpGraphFormats();
+}
+
+
+/**
+ * Parse command line arguments for the add-self-loops command.
+ * @param argc argument count
+ * @param argv argument values
+ * @param i start index of arguments [1]
+ * @returns options
+ */
+inline OptionsAddSelfLoops parseOptionsAddSelfLoops(int argc, char **argv, int i=1) {
+  return parseOptionsMakeUndirected(argc, argv, i);
 }
 #pragma endregion
