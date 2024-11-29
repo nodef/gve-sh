@@ -16,11 +16,13 @@ fi
 : "${KEY_TYPE:=uint32_t}"
 : "${EDGE_VALUE_TYPE:=float}"
 : "${MAX_THREADS:=64}"
+: "${VERSION:=1.0.0}"
 # Define macros (dont forget to add here)
 DEFINES=(""
 "-DKEY_TYPE=$KEY_TYPE"
 "-DEDGE_VALUE_TYPE=$EDGE_VALUE_TYPE"
 "-DMAX_THREADS=$MAX_THREADS"
+"-DVERSION=\"$VERSION\""
 )
 
 # Build tool

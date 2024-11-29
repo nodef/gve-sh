@@ -1,8 +1,12 @@
 {
   "name": "gve.sh",
-  "version": "0.1.12",
+  "version": "0.1.25",
   "description": "A utility for analyzing and modifying graphs.",
+  "preferGlobal": true,
   "main": "main.sh",
+  "bin": {
+    "gve": "main.sh"
+  },
   "scripts": {
     "postinstall": "node setup.js",
     "test": "exit"

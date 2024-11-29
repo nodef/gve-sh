@@ -20,10 +20,11 @@ function writeFile(pth, txt) {
 
 // Main function.
 function main() {
-  var env = Object.assign({DOWNLOAD: '0', RUN: '0'}, process.env);
+  var p   = JSON.parse(readFile('package.json'));
+  var env = Object.assign({DOWNLOAD: '0', RUN: '0', VERSION: p.version}, process.env);
   cp.execSync(`bash main.sh`, {stdio: 'inherit', env});
-  fs.unlinkSync('main.sh');
-  fs.renameSync('a.out', 'main.sh');
   cp.execSync(`rm -rf inc/ *.hxx *.cxx`, {stdio: 'inherit'});
+  cp.execSync(`rm -f main.sh`, {stdio: 'inherit'});
+  cp.execSync(`mv a.out main.sh`, {stdio: 'inherit'});
 }
 main();

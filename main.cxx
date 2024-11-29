@@ -28,6 +28,10 @@ using namespace std;
 /** Maximum number of threads to use. */
 #define MAX_THREADS 1
 #endif
+#ifndef VERSION
+/** Version of the program. */
+#define VERSION "1.0.0"
+#endif
 #pragma endregion
 
 
@@ -213,6 +217,17 @@ inline int runAddSelfLoops(int argc, char **argv, int i=1) {
 
 #pragma region MAIN
 /**
+ * Show version of the main program.
+ * @param name program name
+ * @returns zero on success, non-zero on failure
+ */
+inline int showVersion(const char *name) {
+  fprintf(stderr, "%s version %s\n\n", name, VERSION);
+  return 0;
+}
+
+
+/**
  * Show help message for the main program.
  * @param name program name
  * @returns zero on success, non-zero on failure
@@ -220,10 +235,16 @@ inline int runAddSelfLoops(int argc, char **argv, int i=1) {
 inline int helpMain(const char *name) {
   fprintf(stderr, "%s: A utility for analyzing and modifying graphs.\n", name);
   fprintf(stderr, "\n");
+  fprintf(stderr, "Usage: %s <command> [options]\n", name);
+  fprintf(stderr, "\n");
   fprintf(stderr, "Commands:\n");
   fprintf(stderr, "  count-disconnected-communities\n");
   fprintf(stderr, "  make-undirected\n");
   fprintf(stderr, "  add-self-loops\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Options:\n");
+  fprintf(stderr, "  --help     Show this help message.\n");
+  fprintf(stderr, "  --version  Show the version of the program.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "See `%s <command> --help` for more information on a specific command.\n", name);
   fprintf(stderr, "\n");
@@ -245,6 +266,7 @@ int main(int argc, char **argv) {
   // Run the appropriate command.
   string cmd = argc>1 ? argv[1] : "";
   if (cmd=="--help") return helpMain(argv[0]);
+  else if (cmd=="--version") return showVersion(argv[0]);
   else if (cmd=="count-disconnected-communities") return runCountDisconnectedCommunities(argc, argv, 2);
   else if (cmd=="make-undirected")                return runMakeUndirected(argc, argv, 2);
   else if (cmd=="add-self-loops")                 return runAddSelfLoops(argc, argv, 2);
