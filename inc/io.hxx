@@ -32,6 +32,46 @@ using std::to_string;
 
 
 #pragma region METHODS
+#pragma region READ VECTOR
+/**
+ * Read a vector from a stream (template version).
+ * @tparam KEYED is vector specified by key-value pairs?
+ * @param a output vector
+ * @param stream input stream
+ * @param start start index
+ */
+template <bool KEYED=false, class T>
+inline void readVectorWT(vector<T>& a, istream& stream, int start=0) {
+  string line;
+  a.clear();
+  if (start > 0) a.resize(start);
+  while (getline(stream, line)) {
+    replace(line.begin(), line.end(), ',', ' ');
+    istringstream lstream(line);
+    size_t i = 0; T x = T();
+    if (KEYED) {
+      lstream >> i >> x;
+      a.resize(max(a.size(), i + start + 1));
+      a[i + start] = x;
+    }
+    else {
+      lstream >> x;
+      a.push_back(x);
+    }
+  }
+}
+
+
+template <class T>
+inline void readVectorW(vector<T>& a, istream& stream, bool keyed=false, int start=0) {
+  if (keyed) readVectorWT<true> (a, stream, start);
+  else       readVectorWT<false>(a, stream, start);
+}
+#pragma endregion
+
+
+
+
 #pragma region READ COO FORMAT HEADER
 /**
  * Read header of COO format file.
