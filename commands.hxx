@@ -28,7 +28,6 @@ inline void helpGraphFormats() {
  * @param details details of the option, e.g, "-i, --input <file>"
  */
 inline void showUsage(const char *details) {
-  fprintf(stderr, "\n");
   fprintf(stderr, "Usage:\n");
   fprintf(stderr, "  %s\n", details);
   fprintf(stderr, "\n");
@@ -43,7 +42,7 @@ inline void showUsage(const char *details) {
  */
 inline bool isInputFile(const string &x, const char *details="-i, --input <file>") {
   if (!x.empty()) return true;
-  fprintf(stderr, "No input file specified\n");
+  fprintf(stderr, "No input file specified\n\n");
   showUsage(details);
   return false;
 }
@@ -57,7 +56,7 @@ inline bool isInputFile(const string &x, const char *details="-i, --input <file>
  */
 inline bool isOutputFile(const string &x, const char *details="-o, --output <file>") {
   if (!x.empty()) return true;
-  fprintf(stderr, "No output file specified\n");
+  fprintf(stderr, "No output file specified\n\n");
   showUsage(details);
   return false;
 }
@@ -71,7 +70,7 @@ inline bool isOutputFile(const string &x, const char *details="-o, --output <fil
  */
 inline bool isGraphFormat(const string &x, const char *details="-f, --format <format>") {
   if (x=="mtx" || x=="coo" || x=="csv" || x=="tsv") return true;
-  fprintf(stderr, "Unknown graph format `%s`\n", x.c_str());
+  fprintf(stderr, "Unknown graph format `%s`\n\n", x.c_str());
   showUsage(details);
   helpGraphFormats();
   return false;
@@ -151,7 +150,7 @@ inline OptionsCountDisconnectedCommunities parseCountDisconnectedCommunities(int
     else if (k=="-w" || k=="--weighted")  o.weighted  = true;
     else if (k=="-s" || k=="--symmetric") o.symmetric = true;
     else {
-      fprintf(stderr, "Unknown option: %s\n", k.c_str());
+      fprintf(stderr, "Unknown option `%s`\n\n", k.c_str());
       o.help = true;
     }
   }
@@ -241,7 +240,7 @@ inline OptionsMakeUndirected parseOptionsMakeUndirected(int argc, char **argv, i
     else if (k=="-s" || k=="--input-symmetric")  o.inputSymmetric  = true;
     else if (k=="-t" || k=="--output-symmetric") o.outputSymmetric = true;
     else {
-      fprintf(stderr, "Unknown option: %s\n", k.c_str());
+      fprintf(stderr, "Unknown option `%s`\n\n", k.c_str());
       o.help = true;
     }
   }

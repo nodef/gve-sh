@@ -676,6 +676,61 @@ class DiGraphCsr {
 
 
 #pragma region METHODS
+#pragma region PROPERTIES
+/**
+ * Get the number of vertices in a graph.
+ * @param x graph
+ * @returns number of vertices
+ */
+template <class G>
+inline size_t graphOrder(const G& x) {
+  return x.order();
+}
+
+
+/**
+ * Get the number of edges in a graph.
+ * @param x graph
+ * @param directed is the graph directed? [true]
+ * @returns number of edges
+ */
+template <class G>
+inline size_t graphSize(const G& x, bool directed=true) {
+  size_t m = x.size();
+  if (directed) return m;
+  x.forEachVertexKey([&](auto u) {
+    if (x.hasEdge(u, u)) m -= 1;
+  });
+  return m/2;
+}
+
+
+#ifdef OPENMP
+/**
+ * Get the number of edges in a graph.
+ * @param x graph
+ * @param directed is the graph directed? [true]
+ * @returns number of edges
+ */
+template <class G>
+inline size_t graphSizeOmp(const G& x, bool directed=true) {
+  using K = typename G::key_type;
+  if (directed) return x.size();
+  size_t S = x.span();
+  size_t l = 0;
+  #pragma omp parallel for schedule(dynamic, 2048) reduction(+:l)
+  for (K u=0; u<S; ++u) {
+    if (!x.hasVertex(u)) continue;
+    if (x.hasEdge(u, u)) ++l;
+  }
+  return (x.size() - l)/2;
+}
+#endif
+#pragma endregion
+
+
+
+
 #pragma region WRITE
 /**
  * Write the only the sizes of a graph to an output stream.
