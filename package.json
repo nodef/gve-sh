@@ -1,6 +1,6 @@
 {
   "name": "gve.sh",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "A utility for analyzing and modifying graphs.",
   "main": "index.js",
   "scripts": {
