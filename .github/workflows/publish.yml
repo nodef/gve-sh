@@ -1,0 +1,27 @@
+name: publish
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '!*'  # Do not execute on tags
+env:
+  NPM_TOKEN:    ${{secrets.NPM_TOKEN}}
+  GITHUB_TOKEN: ${{secrets.GH_TOKEN}}
+  COMMIT_MESSAGE: ${{github.event.head_commit.message}}
+  FORCE_COLOR: 1
+
+
+jobs:
+  publish:
+    name: Publish to NPM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - uses: nodef/npm-config.action@v1.0.0
+        with:
+          credentials: auto
+      - run: node publish.js "${COMMIT_MESSAGE}"
