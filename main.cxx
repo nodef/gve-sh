@@ -3,7 +3,7 @@
 #include <string>
 #include <string_view>
 #include "inc/main.hxx"
-#include "options.hxx"
+#include "commands.hxx"
 
 using namespace std;
 
