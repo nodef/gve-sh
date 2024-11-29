@@ -1,199 +1,171 @@
 #pragma once
-#include <string>
-#include <string_view>
-#include <unordered_map>
 #include <cstdint>
+#include <cstdio>
+#include <string>
 
 using std::string;
-using std::string_view;
-using std::unordered_map;
-using std::stoi;
 
 
 
 
-#pragma region OPTIONS
-/** Command-line options for the program. */
-typedef unordered_map<string, string> Options;
-
-
+#pragma region COMMON
 /**
- * Check if a string is a boolean.
- * @param x string to check
- * @returns true if the string is a boolean, false otherwise
+ * Show help message for supported graph formats.
  */
-inline bool isBool(string_view x) {
-  return x=="0" || x=="1" || x=="true" || x=="false";
+inline void helpGraphFormats() {
+  fprintf(stderr, "Supported graph formats:\n");
+  fprintf(stderr, "  mtx       Matrix Market format.\n");
+  fprintf(stderr, "  coo       Coordinate format.\n");
+  fprintf(stderr, "  edgelist  Edgelist format.\n");
+  fprintf(stderr, "  csv       Comma-separated values format.\n");
+  fprintf(stderr, "  tsv       Tab-separated values format.\n");
+  fprintf(stderr, "\n");
 }
 
 
 /**
- * Check if a string is an integer.
- * @param x string to check
- * @returns true if the string is an integer, false otherwise
+ * Show help message for command-line option.
+ * @param details details of the option, e.g, "-i, --input <file>"
  */
-inline bool isInt(string_view x) {
-  char *end;
-  strtol(x.data(), &end, 10);
-  return end == x.data() + x.size();
+inline void showUsage(const char *details) {
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Usage:\n");
+  fprintf(stderr, "  %s\n", details);
+  fprintf(stderr, "\n");
 }
 
 
 /**
- * Check if a string is a graph id.
- * @param x string to check
- * @returns true if the string is a graph id, false otherwise
+ * Validate the input file.
+ * @param x input file name
+ * @param details details of the option
+ * @returns true if the input file is valid
  */
-inline bool isGraphId(string_view x) {
-  return x.size()>=2 && (x[0]=='G' || x[0]=='g') && isInt(x.substr(1));
+inline bool isInputFile(const string &x, const char *details="-i, --input <file>") {
+  if (!x.empty()) return true;
+  fprintf(stderr, "No input file specified\n");
+  showUsage(details);
+  return false;
 }
 
 
 /**
- * Check if a string is a double.
- * @param x string to check
- * @returns true if the string is a double, false otherwise
+ * Validate the output file.
+ * @param x output file name
+ * @param details details of the option
+ * @returns true if the output file is valid
  */
-inline bool isDouble(string_view x) {
-  char *end;
-  strtod(x.data(), &end);
-  return end == x.data() + x.size();
+inline bool isOutputFile(const string &x, const char *details="-o, --output <file>") {
+  if (!x.empty()) return true;
+  fprintf(stderr, "No output file specified\n");
+  showUsage(details);
+  return false;
 }
 
 
 /**
- * Extract the extension from a path.
- * @param path path to extract extension from
- * @returns extension of the path
+ * Validate the graph format.
+ * @param x graph format
+ * @param details details of the option
+ * @returns true if the graph format is valid
  */
-inline string_view pathExtname(string_view path) {
-  auto   idx = path.rfind('.');
-  return idx==string::npos? "" : path.substr(idx);
-}
-
-
-/**
- * Parse file format from a string.
- * @param x string to parse
- * @returns parsed file format
- */
-inline const char* parseFileFormat(string_view x) {
-  if (!x.empty() && x[0]=='.') x = x.substr(1);
-  if (x=="") return "";
-  if (x=="edgelist"      || x=="edges") return "edgelist";
-  if (x=="matrix-market" || x=="mtx")   return "matrix-market";
-  if (x=="snap-temporal" || x=="temporal" || x=="txt") return "temporal";
-}
-
-
-/**
- * Read a command from the command-line arguments.
- * @param o options to read into (updated)
- * @param argc number of arguments
- * @param argv array of arguments
- * @param i index of the current argument
- * @returns index of the next argument to read
- * @details
- * Available commands:
- * $ serve
- * Start a server to listen for commands.
- *
- * $ load -i <input-file>
- * Load a graph from a file into memory.
- *
- * $ unload <input-graph>
- * Unload a graph from memory.
- *
- * $ save <input-graph> -o <output-file>
- * Save a graph from memory to a file.
- *
- * $ convert -i <input-file> -o <output-file>
- * Convert a graph from one format to another.
- *
- * $ measure <subcommand> <input-graph>
- * $ measure <subcommand> -i <input-file>
- * Measure a property of a graph.
- */
-inline int readCommandU(Options& o, int argc, const char **argv, int i) {
-  string_view c = o["command"];
-  if (c=="unload" || c=="save") {
-    if  (o["input-graph"]=="") o["input-graph"] = argv[i];
-    else o["error"] = "Input graph `" + o["input-graph"] + "` already specified";
-  }
-  return i;
-}
-
-
-/**
- * Verify the options for a command.
- * @param o options to verify
- * @returns error message if any
- */
-inline string verifyOptions(Options& o) {
-  string_view c = o["command"];
-  if (c=="unload" || c=="save") {
-    string_view g = o["input-graph"];
-    if (g=="")         return "No input graph specified";
-    if (!isGraphId(g)) return "Invalid input graph `" + string(g) + "` (must be G<int>)";
-  }
-  if (c=="load" || c=="convert") {
-    if (o["input-file"]=="")    return "No input file specified";
-    if (o["input-format"]=="")  return "No input format specified";
-  }
-  if (c=="save" || c=="convert") {
-    if (o["output-file"]=="")   return "No output file specified";
-    if (o["output-format"]=="") return "No output format specified";
-  }
-  return "";
-}
-
-
-/**
- * Read command-line options into an Options struct.
- * @param argc number of arguments
- * @param argv array of arguments
- * @returns parsed Options
- */
-inline Options readOptions(int argc, const char **argv) {
-  Options o;
-  // Read each option one by one.
-  for (int i=1; i<argc; ++i) {
-    string_view k = argv[i];
-    if (k=="--help") o["help"] = "1";
-    else if (k=="-i" || k=="--input")  o["input-file"]    = argv[++i];
-    else if (k=="-o" || k=="--output") o["output-file"]   = argv[++i];
-    else if (k=="-f" || k=="--format") o["input-format"]  = argv[++i];
-    else if (k=="--input-file")        o["input-file"]    = argv[++i];
-    else if (k=="--output-file")       o["output-file"]   = argv[++i];
-    else if (k=="--input-format")      o["input-format"]  = argv[++i];
-    else if (k=="--output-format")     o["output-format"] = argv[++i];
-    else if (k[0]=='-')        o["error"]   = "Unknown option: " + string(k);
-    else if (o["command"]=="") o["command"] = k;
-    else i = readCommandU(o, argc, argv, i);
-  }
-  // Preliminary checks.
-  if (o["command"]=="") o["error"] = "No command specified";
-  if (o["error"]!="")   return o;
-  // Obtain default input/output formats.
-  if (o["input-format"]=="")  o["input-format"]  = parseFileFormat(pathExtname(o["input-file"]));
-  if (o["output-format"]=="") o["output-format"] = parseFileFormat(pathExtname(o["output-file"]));
-  if (o["output-format"]=="") o["output-format"] = o["input-format"];
-  // Verify options.
-  o["error"] = verifyOptions(o);
-  return o;
+inline bool isGraphFormat(const string &x, const char *details="-f, --format <format>") {
+  if (x=="mtx" || x=="coo" || x=="csv" || x=="tsv") return true;
+  fprintf(stderr, "Unknown graph format `%s`\n", x.c_str());
+  showUsage(details);
+  helpGraphFormats();
+  return false;
 }
 #pragma endregion
 
 
 
 
-#pragma region HELP
+#pragma region MAKE UNDIRECTED
 /**
- * Generate a help message for the program.
- * @returns help message
+ * Command-line options for the make-undirected command.
  */
-inline const char* helpMessage() {
-  return "For usage details, please try the following URL:\n"
-  "https://github.com/ionicf/gve.sh";
+struct OptionsMakeUndirected {
+  /** Show help message? */
+  bool help = false;
+  /** Is it valid? */
+  bool valid = false;
+  /** Input file name. */
+  string inputFile = "";
+  /** Output file name. */
+  string outputFile = "";
+  /** Input file format (see supported formats). */
+  string inputFormat = "mtx";
+  /** Output file format (see supported formats). */
+  string outputFormat = "mtx";
+  /** Whether the input graph is weighted. */
+  bool inputWeighted = false;
+  /** Whether the output graph is weighted. */
+  bool outputWeighted = false;
+  /** Whether the input graph is symmetric. */
+  bool inputSymmetric = false;
+  /** Whether the output graph is symmetric. */
+  bool outputSymmetric = false;
+};
+
+
+/**
+ * Show help message for the make-undirected command.
+ * @param name program name
+ */
+inline void helpMakeUndirected(const char *name) {
+  fprintf(stderr, "%s make-undirected:\n", name);
+  fprintf(stderr, "Convert a directed graph to an undirected graph.\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Options:\n");
+  fprintf(stderr, "  -h, --help                    Show this help message.\n");
+  fprintf(stderr, "  -i, --input <file>            Input file name.\n");
+  fprintf(stderr, "  -o, --output <file>           Output file name.\n");
+  fprintf(stderr, "  -f, --input-format <format>   Input file format [mtx].\n");
+  fprintf(stderr, "  -g, --output-format <format>  Output file format [mtx].\n");
+  fprintf(stderr, "  -w, --input-weighted          Input graph is weighted [false].\n");
+  fprintf(stderr, "  -x, --output-weighted         Output graph is weighted [false].\n");
+  fprintf(stderr, "  -s, --input-symmetric         Input graph is symmetric [false].\n");
+  fprintf(stderr, "  -t, --output-symmetric        Output graph is symmetric [false].\n");
+  fprintf(stderr, "\n");
+  helpGraphFormats();
+}
+
+
+/**
+ * Parse command line arguments.
+ * @param argc argument count
+ * @param argv argument values
+ * @param i starting index
+ * @returns options
+ */
+inline OptionsMakeUndirected parseOptionsMakeUndirected(int argc, char **argv, int i=1) {
+  OptionsMakeUndirected o;
+  // Parse command-line arguments.
+  for (; i<argc; ++i) {
+    string k = argv[i];
+    if (k=="") continue;
+    else if (k=="-h" || k=="--help") o.help = true;
+    else if (k=="-i" || k=="--input")  o.inputFile  = argv[++i];
+    else if (k=="-o" || k=="--output") o.outputFile = argv[++i];
+    else if (k=="-f" || k=="--input-format")  o.inputFormat  = argv[++i];
+    else if (k=="-g" || k=="--output-format") o.outputFormat = argv[++i];
+    else if (k=="-w" || k=="--input-weighted")   o.inputWeighted   = true;
+    else if (k=="-x" || k=="--output-weighted")  o.outputWeighted  = true;
+    else if (k=="-s" || k=="--input-symmetric")  o.inputSymmetric  = true;
+    else if (k=="-t" || k=="--output-symmetric") o.outputSymmetric = true;
+    else {
+      fprintf(stderr, "Unknown option: %s\n", k.c_str());
+      o.help = true;
+    }
+  }
+  // Validate options.
+  if (!isInputFile(o.inputFile)) return o;
+  if (!isOutputFile(o.outputFile)) return o;
+  if (!isGraphFormat(o.inputFormat, "-f, --input-format <format>")) return o;
+  if (!isGraphFormat(o.outputFormat, "-g, --output-format <format>")) return o;
+  if (o.help) { helpMakeUndirected(argv[0]); return o; }
+  o.valid = true;
+  return o;
 }
 #pragma endregion

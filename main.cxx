@@ -1,7 +1,12 @@
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <stdexcept>
 #include <string>
-#include <string_view>
+#include <istream>
+#include <ostream>
+#include <fstream>
+#include <omp.h>
 #include "inc/main.hxx"
 #include "commands.hxx"
 
@@ -10,8 +15,91 @@ using namespace std;
 
 
 
-#pragma region SUPPORT
-template <class G>
+#pragma region CONFIGURATION
+#ifndef KEY_TYPE
+/** Type of vertex ids. */
+#define KEY_TYPE uint32_t
+#endif
+#ifndef EDGE_VALUE_TYPE
+/** Type of edge weights. */
+#define EDGE_VALUE_TYPE float
+#endif
+#ifndef MAX_THREADS
+/** Maximum number of threads to use. */
+#define MAX_THREADS 1
+#endif
+#pragma endregion
+
+
+
+
+#pragma region IO
+/**
+ * Read the specified input graph.
+ * @param a read graph (output)
+ * @param file input file name
+ * @param format input file format
+ * @param symmetric is graph symmetric?
+ */
+template <bool WEIGHTED=false, class G>
+inline void readGraphW(G& a, const string& file, const string& format, bool symmetric=false) {
+  ifstream stream(file.c_str());
+  if (format=="mtx") readGraphMtxFormatOmpW<WEIGHTED>(a, stream);
+  else if (format=="coo") readGraphCooFormatOmpW<WEIGHTED>(a, stream, symmetric);
+  else if (format=="edgelist" || format=="csv" || format=="tsv") readGraphEdgelistFormatOmpW<WEIGHTED>(a, stream, symmetric);
+  else throw std::runtime_error("Unknown input format: " + format);
+  stream.close();
+}
+
+
+/**
+ * Write the specified output graph.
+ * @param x graph to write (input)
+ * @param file output file name
+ * @param format output file format
+ * @param symmetric is graph symmetric?
+ */
+template <bool WEIGHTED=false, class G>
+inline void writeGraph(const G& x, const string& file, const string& format, bool symmetric=false) {
+  ofstream stream(file.c_str());
+  if (format=="mtx") writeGraphMtxFormatOmp<WEIGHTED>(stream, x, symmetric);
+  else if (format=="coo") writeGraphCooFormatOmp<WEIGHTED>(stream, x, symmetric);
+  else if (format=="edgelist") writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric);
+  else if (format=="csv") writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric, ',');
+  else if (format=="tsv") writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric, '\t');
+  else throw std::runtime_error("Unknown output format: " + format);
+  stream.close();
+}
+#pragma endregion
+
+
+
+
+#pragma region MAKE UNDIRECTED
+/**
+ * Run the make-undirected command.
+ */
+inline void runMakeUndirected(const OptionsMakeUndirected& o) {
+  using K = KEY_TYPE;
+  using E = EDGE_VALUE_TYPE;
+  DiGraph<K, None, E> x;
+  // Read graph.
+  printf("Reading graph %s ...\n", o.inputFile.c_str());
+  if (o.inputWeighted) readGraphW<true> (x, o.inputFile, o.inputFormat, o.inputSymmetric);
+  else                 readGraphW<false>(x, o.inputFile, o.inputFormat, o.inputSymmetric);
+  println(x);
+  // Symmetrize graph.
+  if (!o.inputSymmetric) {
+    symmetrizeOmpU(x);
+    print(x); printf(" (symmetrize)\n");
+  }
+  // Write undirected graph.
+  printf("Writing undirected graph %s ...\n", o.outputFile.c_str());
+  if (o.outputWeighted) writeGraph<true> (x, o.outputFile, o.outputFormat, o.outputSymmetric);
+  else                  writeGraph<false>(x, o.outputFile, o.outputFormat, o.outputSymmetric);
+  printf("Undirected graph written to %s.\n", o.outputFile.c_str());
+  printf("\n");
+}
 #pragma endregion
 
 
@@ -19,92 +107,19 @@ template <class G>
 
 #pragma region MAIN
 /**
- * Read a string buffer, where each string is null-terminated.
- * @param buffer buffer to read
- * @param size size of the buffer
- * @returns strings in the buffer
- */
-inline vector<const char*> readStringBuffer(const char *buffer, size_t size) {
-  vector<const char*> argv;
-  const char *begin = buffer;
-  const char *end   = buffer + size;
-  while (begin < end) {
-    argv.push_back(begin);
-    begin += strlen(buffer) + 1;
-  }
-  return argv;
-}
-
-
-inline void handleLoadCommand(UnixSocketServer &server, int client_fd, vector<DiGraph>& graphs, Options& o) {
-  string_view inputFile = o["input-file"];
-  int inputGraph = graphs.size();
-  DiGraph x;
-  printf("Loading graph G%d for client %d from %s ...\n", inputGraph, client_fd, inputFile.c_str());
-  readMtxOmpW(x, file, weighted);
-}
-
-
-/**
- * Handle data from a client.
- * @param server server to handle
- * @param client_fd client file descriptor
- */
-inline void handleRecieve(UnixSocketServer &server, int client_fd) {
-  // Read the data from the client.
-  char buffer[65536];
-  size_t recieved = server.receive(client_fd, buffer, sizeof(buffer));
-  printf("Client %d sent %zu bytes\n", client_fd, recieved);
-  uint16_t *packetType = (uint16_t*) buffer;
-  if (*packetType != 0x0000) {
-    server.send(client_fd, "ERROR: Invalid packet format\n");
-    printf("Client %d sent packet with invalid format.\n", client_fd);
-    return;
-  }
-  // Parse the data.
-  vector<const char*> argv = readStringBuffer(buffer, recieved);
-  Options o = readOptions(argv.size(), argv.data());
-  if (o["error"]!="") {
-    server.send(client_fd, "ERROR: " + o["error"] + "\n");
-    printf("Client %d sent invalid command.\n", client_fd);
-  }
-  if (o["help"]=="1") {
-    server.send(client_fd, helpMessage());
-    printf("Client %d requested help.\n", client_fd);
-  }
-}
-
-
-
-/**
  * Main function.
- * @param argc number of arguments
- * @param argv array of arguments
- * @returns exit code
+ * @param argc argument count
+ * @param argv argument values
+ * @returns zero on success, non-zero on failure
  */
 int main(int argc, char **argv) {
-  using K = uint32_t;
-  using V = float;
-  const char *socketFile = "/tmp/socket-gve";
-  if (argc>1) socketFile = argv[1];
-  UnixSocketServer server;
-  // State information.
-  vector<DiGraph<K, K, V>*> graphs;
-  vector<vector<K>*> vectors;
-  // Handle connection from a client.
-  auto onConnect  = [&]() {
-    int client_fd = server.accept();
-    printf("Client %d connected.\n", client_fd);
-  };
-  // Handle disconnection from a client.
-  auto onDisconnect = [&](int client_fd) {
-    server.disconnect(client_fd);
-    printf("Client %d disconnected.\n", client_fd);
-  };
-  auto onRecieve    = [&](int client_fd) { handleRecieve(server, client_fd); };
-  // Start the server.
-  server.bind(socketFile);
-  server.listen(onRecieve, onConnect, onDisconnect);
+  using K = KEY_TYPE;
+  using E = EDGE_VALUE_TYPE;
+  // Initialize OpenMP.
+  if (MAX_THREADS) omp_set_num_threads(MAX_THREADS);
+  // Run the appropriate command.
+  OptionsMakeUndirected o = parseOptionsMakeUndirected(argc, argv, 2);
+  runMakeUndirected(o);
   return 0;
 }
 #pragma endregion
