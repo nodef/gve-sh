@@ -69,8 +69,27 @@ inline void writeGraph(const G& x, const string& file, const string& format, boo
   else if (format=="edgelist") writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric);
   else if (format=="csv") writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric, ',');
   else if (format=="tsv") writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric, '\t');
-  else throw std::runtime_error("Unknown output format: `" + format + "`");
+  else throw std::runtime_error("Unknown output format: \'" + format + "\'");
   stream.close();
+}
+
+
+/**
+ * Show certain properties of the graph.
+ * @param x given graph
+ * @param weighted is graph weighted? [false]
+ * @param symmetric is graph symmetric? [false]
+ */
+template <class G>
+inline void showGraphProperties(const G& x, bool weighted=false, bool symmetric=false) {
+  size_t N = graphOrder(x);
+  size_t M = graphSizeOmp(x, !symmetric);
+  auto [dmin, dmax, davg] = minMaxAvgDegreeOmp(x);
+  double density = double(M) / (N*(N-1));
+  printf("> |V|: %zu, |E|: %zu, Weighted: %s, Symmetric: %s\n", N, M, weighted? "yes" : "no", symmetric? "yes" : "no");
+  printf("> Density: %.2e, Avg degree: %.2f, Min degree: %zu, Max degree: %zu\n", density, davg, dmin, dmax);
+  printf("> Self-loops: %zu, Dead-ends: %zu\n", countSelfLoopsOmp(x), countDeadEndsOmp(x));
+  printf("\n");
 }
 #pragma endregion
 
@@ -95,14 +114,19 @@ inline int runCountDisconnectedCommunities(int argc, char **argv, int i=1) {
   if (!o.valid) return 1;
   // Read input graph.
   DiGraph<K, None, E> x;
-  printf("Reading graph %s ...\n", o.inputFile.c_str());
-  readGraphW(x, o.inputFile, o.inputFormat, o.weighted, o.symmetric); println(x);
+  printf("Reading graph \'%s\' ...\n", o.inputFile.c_str());
+  readGraphW(x, o.inputFile, o.inputFormat, o.weighted, o.symmetric);
+  showGraphProperties(x, o.weighted, o.symmetric);
   // Symmetrize graph.
-  if (!o.symmetric) { symmetrizeOmpU(x); print(x); printf(" (symmetrize)\n"); }
+  if (!o.symmetric) {
+    printf("Symmetrizing graph ...\n");
+    symmetrizeOmpU(x);
+    showGraphProperties(x, o.weighted, true);
+  }
   // Read community membership.
   vector<K> membership(x.span());
   ifstream membershipStream(o.membershipFile.c_str());
-  printf("Reading community membership %s ...\n", o.membershipFile.c_str());
+  printf("Reading community membership \'%s\' ...\n", o.membershipFile.c_str());
   readVectorW(membership, membershipStream, o.membershipKeyed, o.membershipStart);
   // Count the number of disconnected communities.
   auto fc = [&](auto u) { return membership[u]; };
@@ -132,15 +156,19 @@ inline int runMakeUndirected(int argc, char **argv, int i=1) {
   if (!o.valid) return 1;
   // Read input graph.
   DiGraph<K, None, E> x;
-  printf("Reading graph %s ...\n", o.inputFile.c_str());
-  readGraphW(x, o.inputFile, o.inputFormat, o.inputWeighted, o.inputSymmetric); println(x);
+  printf("Reading graph \'%s\' ...\n", o.inputFile.c_str());
+  readGraphW(x, o.inputFile, o.inputFormat, o.inputWeighted, o.inputSymmetric);
+  showGraphProperties(x, o.inputWeighted, o.inputSymmetric);
   // Symmetrize graph.
-  printf("Symmetrizing graph ...\n");
-  if (!o.inputSymmetric) { symmetrizeOmpU(x); print(x); printf(" (symmetrize)\n"); }
+  if (!o.inputSymmetric) {
+    printf("Symmetrizing graph ...\n");
+    symmetrizeOmpU(x);
+    showGraphProperties(x, o.inputWeighted, true);
+  }
   // Write undirected graph.
-  printf("Writing undirected graph %s ...\n", o.outputFile.c_str());
+  printf("Writing undirected graph \'%s\' ...\n", o.outputFile.c_str());
   writeGraph(x, o.outputFile, o.outputFormat, o.outputWeighted, o.outputSymmetric);
-  printf("Undirected graph written to %s.\n", o.outputFile.c_str());
+  printf("Undirected graph written to \'%s\'.\n", o.outputFile.c_str());
   printf("\n");
   return 0;
 }
@@ -163,16 +191,18 @@ inline int runAddSelfLoops(int argc, char **argv, int i=1) {
   if (!o.valid) return 1;
   // Read input graph.
   DiGraph<K, None, E> x;
-  printf("Reading graph %s ...\n", o.inputFile.c_str());
-  readGraphW(x, o.inputFile, o.inputFormat, o.inputWeighted, o.inputSymmetric); println(x);
+  printf("Reading graph \'%s\' ...\n", o.inputFile.c_str());
+  readGraphW(x, o.inputFile, o.inputFormat, o.inputWeighted, o.inputSymmetric);
+  showGraphProperties(x, o.inputWeighted, o.inputSymmetric);
   // Add self-loops.
   printf("Adding self-loops ...\n");
   auto ft = [](auto u) { return true; };
   addSelfLoopsOmpU(x, E(1), ft);
+  showGraphProperties(x, o.inputWeighted, o.inputSymmetric);
   // Write graph with self-loops.
-  printf("Writing graph with self-loops %s ...\n", o.outputFile.c_str());
+  printf("Writing graph with self-loops \'%s\' ...\n", o.outputFile.c_str());
   writeGraph(x, o.outputFile, o.outputFormat, o.outputWeighted, o.outputSymmetric);
-  printf("Graph with self-loops written to %s.\n", o.outputFile.c_str());
+  printf("Graph with self-loops written to \'%s\'.\n", o.outputFile.c_str());
   printf("\n");
   return 0;
 }

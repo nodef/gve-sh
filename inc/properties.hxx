@@ -1,7 +1,10 @@
 #pragma once
-#include <vector>
 #include <cstdint>
 #include <cmath>
+#include <limits>
+#include <tuple>
+#include <vector>
+#include <algorithm>
 #include "_main.hxx"
 #include "bfs.hxx"
 #include "dfs.hxx"
@@ -9,8 +12,12 @@
 #include <omp.h>
 #endif
 
+using std::numeric_limits;
 using std::vector;
+using std::make_tuple;
 using std::pow;
+using std::min;
+using std::max;
 
 
 
@@ -52,6 +59,29 @@ inline void vertexValuesW(vector<V>& a, const G& x) {
 template <class G, class K>
 inline void degreesW(vector<K>& a, const G& x) {
   x.forEachVertexKey([&](auto u) { a[u] = x.degree(u); });
+}
+
+
+/**
+ * Find the minimum, maximum, and average degree of a graph.
+ * @param x given graph
+ * @return [min degree, max degree, avg degree]
+ */
+template <class G>
+inline auto minMaxAvgDegreeOmp(const G& x) {
+  using  K = typename G::key_type;
+  size_t S = x.span();
+  K dmin = numeric_limits<K>::max();
+  K dmax = K();
+  #pragma omp parallel for schedule(static, 2048) reduction(min:dmin) reduction(max:dmax)
+  for (K u=0; u<S; ++u) {
+    if (!x.hasVertex(u)) continue;
+    K d = x.degree(u);
+    dmin = min(dmin, d);
+    dmax = max(dmax, d);
+  }
+  double davg = double(x.size())/S;
+  return make_tuple(size_t(dmin), size_t(dmax), davg);
 }
 #pragma endregion
 
@@ -105,6 +135,29 @@ inline double edgeWeightOmp(const G& x) {
   return a;
 }
 #endif
+#pragma endregion
+
+
+
+
+#pragma region DEAD ENDS
+/**
+ * Count the number of dead-end vertices in a graph.
+ * @param x given graph
+ * @returns number of dead-end vertices
+ */
+template <class G>
+inline auto countDeadEndsOmp(const G& x) {
+  using  K = typename G::key_type;
+  size_t S = x.span();
+  K a = K();
+  #pragma omp parallel for schedule(static, 2048) reduction(+:a)
+  for (K u=0; u<S; ++u) {
+    if (!x.hasVertex(u)) continue;
+    if (x.degree(u)==0) ++a;
+  }
+  return a;
+}
 #pragma endregion
 
 
