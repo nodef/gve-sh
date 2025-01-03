@@ -66,14 +66,24 @@ inline void readGraphW(G& a, const string& file, const string& format, bool weig
  * @param symmetric is graph symmetric? [false]
  */
 template <class G>
-inline void writeGraph(const G& x, const string& file, const string& format, bool weighted=false, bool symmetric=false) {
+inline void writeGraph(const G& x, const string& file, const string& format, bool sequential=false, bool weighted=false, bool symmetric=false) {
   ofstream stream(file.c_str());
-  if (format=="mtx") writeGraphMtxFormatOmp(stream, x, weighted, symmetric);
-  else if (format=="coo") writeGraphCooFormatOmp(stream, x, weighted, symmetric);
-  else if (format=="edgelist") writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric);
-  else if (format=="csv") writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric, ',');
-  else if (format=="tsv") writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric, '\t');
-  else throw std::runtime_error("Unknown output format: \'" + format + "\'");
+  if (sequential) {
+    if (format=="mtx") writeGraphMtxFormat(stream, x, weighted, symmetric);
+    else if (format=="coo") writeGraphCooFormat(stream, x, weighted, symmetric);
+    else if (format=="edgelist") writeGraphEdgelistFormat(stream, x, weighted, symmetric);
+    else if (format=="csv") writeGraphEdgelistFormat(stream, x, weighted, symmetric, ',');
+    else if (format=="tsv") writeGraphEdgelistFormat(stream, x, weighted, symmetric, '\t');
+    else throw std::runtime_error("Unknown output format: \'" + format + "\'");
+  }
+  else {
+    if (format=="mtx") writeGraphMtxFormatOmp(stream, x, weighted, symmetric);
+    else if (format=="coo") writeGraphCooFormatOmp(stream, x, weighted, symmetric);
+    else if (format=="edgelist") writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric);
+    else if (format=="csv") writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric, ',');
+    else if (format=="tsv") writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric, '\t');
+    else throw std::runtime_error("Unknown output format: \'" + format + "\'");
+  }
   stream.close();
 }
 
@@ -171,7 +181,7 @@ inline int runMakeUndirected(int argc, char **argv, int i=1) {
   }
   // Write undirected graph.
   printf("Writing undirected graph \'%s\' ...\n", o.outputFile.c_str());
-  writeGraph(x, o.outputFile, o.outputFormat, o.outputWeighted, o.outputSymmetric);
+  writeGraph(x, o.outputFile, o.outputFormat, o.outputSequential, o.outputWeighted, o.outputSymmetric);
   printf("Undirected graph written to \'%s\'.\n", o.outputFile.c_str());
   printf("\n");
   return 0;
