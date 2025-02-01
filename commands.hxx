@@ -81,6 +81,100 @@ inline bool isGraphFormat(const string &x, const char *details="-f, --format <fo
 
 
 
+#pragma region NO OPERATION
+/**
+ * Command-line options for the no-operation command.
+ * @note This can be used to change the graph format.
+ */
+struct OptionsNoOperation {
+  /** Show help message? */
+  bool help = false;
+  /** Is it valid? */
+  bool valid = false;
+  /** Input file name. */
+  string inputFile = "";
+  /** Input file format (see supported formats). */
+  string inputFormat = "mtx";
+  /** Output file name. */
+  string outputFile = "";
+  /** Output file format (see supported formats). */
+  string outputFormat = "mtx";
+  /** Whether the output file should be written sequentially. */
+  bool outputSequential = false;
+  /** Whether the input graph is weighted. */
+  bool inputWeighted = false;
+  /** Whether the output graph is weighted. */
+  bool outputWeighted = false;
+  /** Whether the input graph is symmetric. */
+  bool inputSymmetric = false;
+  /** Whether the output graph is symmetric. */
+  bool outputSymmetric = false;
+};
+
+
+/**
+ * Show help message for the no-operation command.
+ * @param name program name
+ */
+inline void helpNoOperation(const char *name) {
+  fprintf(stderr, "%s no-operation:\n", name);
+  fprintf(stderr, "Do nothing, just change the graph format.\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Options:\n");
+  fprintf(stderr, "  -h, --help                    Show this help message.\n");
+  fprintf(stderr, "  -i, --input <file>            Input file name.\n");
+  fprintf(stderr, "  -f, --input-format <format>   Input file format [mtx].\n");
+  fprintf(stderr, "  -o, --output <file>           Output file name.\n");
+  fprintf(stderr, "  -g, --output-format <format>  Output file format [mtx].\n");
+  fprintf(stderr, "  -q, --output-sequential       Write output file sequentially [false].\n");
+  fprintf(stderr, "  -w, --input-weighted          Input graph is weighted [false].\n");
+  fprintf(stderr, "  -x, --output-weighted         Output graph is weighted [false].\n");
+  fprintf(stderr, "  -s, --input-symmetric         Input graph is symmetric [false].\n");
+  fprintf(stderr, "  -t, --output-symmetric        Output graph is symmetric [false].\n");
+  fprintf(stderr, "\n");
+  helpGraphFormats();
+}
+
+
+/**
+ * Parse command line arguments for the no-operation command.
+ * @param argc argument count
+ * @param argv argument values
+ * @param i start index of arguments [1]
+ * @returns options
+ */
+inline OptionsNoOperation parseOptionsNoOperation(int argc, char **argv, int i=1) {
+  OptionsNoOperation o;
+  // Parse command-line arguments.
+  for (; i<argc; ++i) {
+    string k = argv[i];
+    if (k=="") continue;
+    else if (k=="-h" || k=="--help") o.help = true;
+    else if (k=="-i" || k=="--input")  o.inputFile  = argv[++i];
+    else if (k=="-f" || k=="--input-format")  o.inputFormat  = argv[++i];
+    else if (k=="-o" || k=="--output") o.outputFile = argv[++i];
+    else if (k=="-g" || k=="--output-format") o.outputFormat = argv[++i];
+    else if (k=="-q" || k=="--output-sequential") o.outputSequential = true;
+    else if (k=="-w" || k=="--input-weighted")   o.inputWeighted   = true;
+    else if (k=="-x" || k=="--output-weighted")  o.outputWeighted  = true;
+    else if (k=="-s" || k=="--input-symmetric")  o.inputSymmetric  = true;
+    else if (k=="-t" || k=="--output-symmetric") o.outputSymmetric = true;
+    else { fprintf(stderr, "Unknown option '%s'\n\n", k.c_str()); return o; }
+  }
+  // Validate options.
+  if (o.help) return o;
+  if (!isInputFile(o.inputFile)) return o;
+  if (!isOutputFile(o.outputFile)) return o;
+  if (!isGraphFormat(o.inputFormat, "-f, --input-format <format>")) return o;
+  if (!isGraphFormat(o.outputFormat, "-g, --output-format <format>")) return o;
+  o.valid = true;
+  return o;
+}
+#pragma endregion
+
+
+
+
 #pragma region COUNT DISCONNECTED COMMUNITIES
 /**
  * Command-line options for the count-disconnected-communities command.

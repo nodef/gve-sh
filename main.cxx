@@ -223,6 +223,35 @@ inline int runAddSelfLoops(int argc, char **argv, int i=1) {
   printf("\n");
   return 0;
 }
+
+
+/**
+ * Run the no-operation command.
+ * @param argc argument count
+ * @param argv argument values
+ * @param i start index of arguments [1]
+ * @returns zero on success, non-zero on failure
+ */
+inline int runNoOperation(int argc, char **argv, int i=1) {
+  using K = KEY_TYPE;
+  using E = EDGE_VALUE_TYPE;
+  using Options = OptionsNoOperation;
+  // Parse command-line arguments.
+  Options o = parseOptionsNoOperation(argc, argv, i);
+  if (o.help) { helpNoOperation(argv[0]); return 1; }
+  if (!o.valid) return 1;
+  // Read input graph.
+  DiGraph<K, None, E> x;
+  printf("Reading graph \'%s\' ...\n", o.inputFile.c_str());
+  readGraphW(x, o.inputFile, o.inputFormat, o.inputWeighted, o.inputSymmetric);
+  showGraphProperties(x, o.inputWeighted, o.inputSymmetric);
+  // Write output graph.
+  printf("Writing graph \'%s\' ...\n", o.outputFile.c_str());
+  writeGraph(x, o.outputFile, o.outputFormat, o.outputWeighted, o.outputSymmetric);
+  printf("Graph written to \'%s\'.\n", o.outputFile.c_str());
+  printf("\n");
+  return 0;
+}
 #pragma endregion
 
 
@@ -254,6 +283,7 @@ inline int helpMain(const char *name) {
   fprintf(stderr, "  count-disconnected-communities\n");
   fprintf(stderr, "  make-undirected\n");
   fprintf(stderr, "  add-self-loops\n");
+  fprintf(stderr, "  no-operation\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Options:\n");
   fprintf(stderr, "  --help     Show this help message.\n");
@@ -283,6 +313,7 @@ int main(int argc, char **argv) {
   else if (cmd=="count-disconnected-communities") return runCountDisconnectedCommunities(argc, argv, 2);
   else if (cmd=="make-undirected")                return runMakeUndirected(argc, argv, 2);
   else if (cmd=="add-self-loops")                 return runAddSelfLoops(argc, argv, 2);
+  else if (cmd=="no-operation")                   return runNoOperation(argc, argv, 2);
   fprintf(stderr, "Unknown command `%s`. See `%s --help` for a list of commands.\n\n", cmd.c_str(), argv[0]);
   return 1;
 }
