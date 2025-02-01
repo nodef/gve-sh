@@ -321,6 +321,82 @@ inline void readGraphMtxFormatOmpW(G& a, istream& stream, bool weighted=false) {
 
 
 
+#pragma region READ ADJACENCY GRAPH FORMAT
+/**
+ * Read a graph in adjacency graph format (for internal use).
+ * @param a output graph (output)
+ * @param stream input stream
+ */
+template <class G, class FU>
+inline void readGraphAdjFormatInternalW(G& a, istream& stream, FU fu) {
+  using K = typename G::key_type;
+  using E = typename G::edge_value_type;
+  const char *ENOHEADER = "Invalid adjacency graph format (missing header)";
+  const char *ELOWOFFST = "Invalid adjacency graph format (missing offsets)";
+  const char *ELOWEDGES = "Invalid adjacency graph format (missing edges)";
+  a.clear();
+  // Read the header.
+  string line;
+  while (true) {
+    if (!getline(stream, line) || line.size() < 2) throw FormatError(ENOHEADER);
+    if (line[0]=='#' || line=="AdjacencyGraph") continue;
+  }
+  size_t n = strtoull(line.c_str(), nullptr, 10);
+  if (!getline(stream, line)) throw FormatError(ENOHEADER);
+  size_t m = strtoull(line.c_str(), nullptr, 10);
+  // Create vertices (1 to n).
+  addVerticesU(a, K(1), K(n + 1));
+  // Read the offsets for each vertex.
+  vector<size_t> offsets;
+  offsets.reserve(n+1);
+  for (size_t i=0; i<n; ++i) {
+    if (!getline(stream, line)) throw FormatError(ELOWOFFST);
+    size_t o = strtoull(line.c_str(), nullptr, 10);
+    offsets.push_back(o);
+  }
+  offsets.push_back(m);
+  // Read the edges.
+  for (size_t u=0; u<n; ++u) {
+    size_t ob = offsets[u];
+    size_t oe = offsets[u+1];
+    for (size_t it=ob; it<oe; ++it) {
+      if (!getline(stream, line)) throw FormatError(ELOWEDGES);
+      size_t v = strtoull(line.c_str(), nullptr, 10);
+      a.addEdge(K(u+1), K(v+1), E(1));
+    }
+  }
+  // Update the graph.
+  fu();
+}
+
+
+/**
+ * Read a graph in adjacency graph format.
+ * @param a output graph (output)
+ * @param stream input stream
+ */
+template <class G>
+inline void readGraphAdjFormatInternalW(G& a, istream& stream) {
+  auto fu = [&]() { a.update(); };
+  readGraphAdjFormatInternalW(a, stream, fu);
+}
+
+
+/**
+ * Read a graph in adjacency graph format.
+ * @param a output graph (output)
+ * @param stream input stream
+ */
+template <class G>
+inline void readGraphAdjFormatOmpW(G& a, istream& stream) {
+  auto fu = [&]() { updateOmpU(a); };
+  readGraphAdjFormatInternalW(a, stream, fu);
+}
+#pragma endregion
+
+
+
+
 #pragma region WRITE EDGELIST FORMAT
 /**
  * Write a graph in Edgelist format.
@@ -478,5 +554,32 @@ inline void writeGraphMtxFormatOmp(ostream& stream, const G& x, bool weighted=fa
   writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric, sep);
 }
 #endif
+#pragma endregion
+
+
+
+
+#pragma region WRITE ADJACENCY GRAPH FORMAT
+/**
+ * Write a graph in adjacency graph format.
+ * @param stream output stream
+ * @param x input graph
+ */
+template <class G>
+inline void writeGraphAdjFormat(ostream& stream, const G& x) {
+  size_t n = graphOrder(x), m = graphSize(x);
+  stream << "AdjacencyGraph\n";
+  stream << n << '\n' << m << '\n';
+  size_t offset = 0;
+  x.forEachVertexKey([&](auto u) {
+    stream << offset << '\n';
+    offset += x.degree(u);
+  });
+  x.forEachVertexKey([&](auto u) {
+    x.forEachEdgeKey(u, [&](auto v) {
+      stream << v << '\n';
+    });
+  });
+}
 #pragma endregion
 #pragma endregion

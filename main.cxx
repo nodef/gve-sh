@@ -52,6 +52,7 @@ inline void readGraphW(G& a, const string& file, const string& format, bool weig
   if (format=="mtx") readGraphMtxFormatOmpW(a, stream, weighted);
   else if (format=="coo") readGraphCooFormatOmpW(a, stream, weighted, symmetric);
   else if (format=="edgelist" || format=="csv" || format=="tsv") readGraphEdgelistFormatOmpW(a, stream, weighted, symmetric);
+  else if (format=="adj") readGraphAdjFormatOmpW(a, stream);
   else throw std::runtime_error("Unknown input format: `" + format + "`");
   stream.close();
 }
@@ -74,6 +75,7 @@ inline void writeGraph(const G& x, const string& file, const string& format, boo
     else if (format=="edgelist") writeGraphEdgelistFormat(stream, x, weighted, symmetric);
     else if (format=="csv") writeGraphEdgelistFormat(stream, x, weighted, symmetric, ',');
     else if (format=="tsv") writeGraphEdgelistFormat(stream, x, weighted, symmetric, '\t');
+    else if (format=="adj") writeGraphAdjFormat(stream, x);
     else throw std::runtime_error("Unknown output format: \'" + format + "\'");
   }
   else {
@@ -82,6 +84,7 @@ inline void writeGraph(const G& x, const string& file, const string& format, boo
     else if (format=="edgelist") writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric);
     else if (format=="csv") writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric, ',');
     else if (format=="tsv") writeGraphEdgelistFormatOmp(stream, x, weighted, symmetric, '\t');
+    else if (format=="adj") writeGraphAdjFormat(stream, x);
     else throw std::runtime_error("Unknown output format: \'" + format + "\'");
   }
   stream.close();

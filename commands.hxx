@@ -19,6 +19,7 @@ inline void helpGraphFormats() {
   fprintf(stderr, "  edgelist  Edgelist format.\n");
   fprintf(stderr, "  csv       Comma-separated values format.\n");
   fprintf(stderr, "  tsv       Tab-separated values format.\n");
+  fprintf(stderr, "  adj       Adjacency graph format (CSR).\n");
   fprintf(stderr, "\n");
 }
 
@@ -69,7 +70,7 @@ inline bool isOutputFile(const string &x, const char *details="-o, --output <fil
  * @returns true if the graph format is valid
  */
 inline bool isGraphFormat(const string &x, const char *details="-f, --format <format>") {
-  if (x=="mtx" || x=="coo" || x=="csv" || x=="tsv") return true;
+  if (x=="mtx" || x=="coo" || x=="edgelist" || x=="csv" || x=="tsv" || x=="adj") return true;
   fprintf(stderr, "Unknown graph format '%s'\n\n", x.c_str());
   showUsage(details);
   helpGraphFormats();
